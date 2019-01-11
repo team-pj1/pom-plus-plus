@@ -1,6 +1,8 @@
 #include <iostream>
+#include <pommerman.hpp>
 
 int main(){
-    std::cout << "ABC" << std::endl;
-    exit(0);
+    pom::board b(2, 2);
+    pom::cui cui(&board);
+    //1sec let's try building ?
 }
