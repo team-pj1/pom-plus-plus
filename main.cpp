@@ -1,8 +1,14 @@
 #include <iostream>
-#include <pommerman.hpp>
+#include <windows.h>
+#include <pommerman/board.hpp>
+#include <pommerman/cui.hpp>
 
 int main(){
-    pom::board b(2, 2);
+    pom::board board(10, 10);
     pom::cui cui(&board);
-    //1sec let's try building ?
+    for(int i=0;i!=10;++i){
+        board.state[i][i]=1;
+        cui.update();
+        Sleep(1000);
+    }
 }
