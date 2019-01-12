@@ -1,2 +1,0 @@
-Awesome, so we should check for any pre-existing implementations for a matrix using vector. 
-I created one before, hold on lemme pull it up into board.hpp. Go ahead.. Anyway, back to this. You should grab that matrix thing. That's fine.
