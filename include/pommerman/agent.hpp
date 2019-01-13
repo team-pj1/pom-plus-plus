@@ -19,6 +19,20 @@ class base_agent {
 };
 class rand_agent : public pom::base_agent {
    public:
-    unsigned short act(pom::Observation obs) { return rand() % 6; }
+    void init(short id, pom::GameMode mode) override {
+        this->id = id;
+        std::cout << "Random " << id << std::endl;
+    }
+    unsigned short act(pom::Observation obs) override { return rand() % 6; }
+};
+
+class lazy_agent : public pom::base_agent {
+   public:
+    void init(short id, pom::GameMode mode) override {
+        this->id = id;
+        std::cout << "Lazy " << id << std::endl;
+    }
+
+    unsigned short act(pom::Observation obs) override { return 0; }
 };
 }  // namespace pom

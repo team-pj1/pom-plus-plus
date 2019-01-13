@@ -62,11 +62,11 @@ class board {
         assert(size >= 5);
         this->size = size;
         srand(seed);  // We set it to 5 in the main file. To keep test consistent.
-        std::cout << (int) (size * size)/5 << "/" << size*size << std::endl;        
-        make((int) (this->size * this->size)/5, (int) (this->size * this->size)/5);
+        std::cout << (int)(size * size) / 5 << "/" << size * size << std::endl;
+        make((int)(this->size * this->size) / 5, (int)(this->size * this->size) / 5);
     }
     void reset() {
-        make((int) (this->size * this->size)/5, (int) (this->size * this->size)/5);
+        make((int)(this->size * this->size) / 5, (int)(this->size * this->size) / 5);
     }
 };
 }  // namespace pom
