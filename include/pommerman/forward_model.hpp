@@ -9,9 +9,9 @@ class forward_model {
    public:
     pom::GameMode mode;
     pom::board* board;
-    std::vector<pom::base_agent> agents;
+    std::vector<pom::base_agent*> agents;
     forward_model(pom::GameMode mode, pom::board* board,
-                  std::vector<pom::base_agent> agents) {
+                  std::vector<pom::base_agent*> agents) {
         assert(this->agents.size() % 2 == 0);
         this->mode = mode;
         this->board = board;
@@ -24,7 +24,7 @@ class forward_model {
             };
         for (int i = 0; i != this->agents.size(); ++i) {
             this->board->state[a[i].x][a[i].y] = i+9;
-            this->agents[i].init(i,mode);
+            this->agents[i]->init(i,mode);
         }
     }
 };

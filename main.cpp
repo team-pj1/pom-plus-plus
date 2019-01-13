@@ -7,20 +7,18 @@
 #include <vector>
 
 int main() {
+    // Create Board
     pom::board board(11, 5);
-    pom::GameMode mode = pom::GameMode({1,0,1});
-    /*std::vector<pom::base_agent> agents;
-    for( int i = 0; i < 4; i ++){
-        agents.push_back(pom::rand_agent());
-    }
-    
-    for (int i = 0; i != agents.size(); ++i) {
-        agents[i].init(i,mode);
-    }*/
-    pom::base_agent agent = pom::rand_agent();
-    agent.init(1, mode);
-    /*pom::forward_model fm(pom::GameMode({1,0,1}), &board, agents);
-    pom::cui cui(&board);*/
+    // Create Agents
+    pom::rand_agent a;
+    pom::rand_agent b;
+    pom::rand_agent c;
+    pom::rand_agent d;
+    // Initialize Forward Model
+    pom::forward_model fm(pom::GameMode({1,0,1}), &board, std::vector<pom::base_agent*>{&a,&b,&c,&d});
+    // Initialize Command-Line UI
+    pom::cui cui(&board);
+    // Event Loop
     /*while (true) {
         cui.update();
         //board.state[rand() % 8][rand() % 8]=3;
