@@ -1,9 +1,8 @@
 #pragma once
 #include <tuple>
-#include <vector>
+#include <memory>
 
 namespace pom {
-typedef std::vector<std::vector<short>> Matrix;
 class Coordinate {
    public:
     unsigned short x, y;
@@ -11,13 +10,36 @@ class Coordinate {
         this->x = x;
         this->y = y;
     }
-    /*
+    Coordinate() {
+        this->x = 0;
+        this->y = 0;
+    }
     unsigned short operator[](bool i) {
         if (!i) return x;
         return y;
     }
-    */
 };
+
+template <typename T>
+class Matrix {
+   private:
+    T* state;
+
+   public:
+    unsigned short size;
+    Matrix() {}
+    Matrix(unsigned short size) {
+        this->size=size;
+        this->state = new T[size*size]();
+    }
+    void clear(){
+        delete[] state;
+        state = new T[this->size*this->size]();
+    }
+    T &operator[](pom::Coordinate c) { return this->state[c.x+(c.y*this->size)]; }
+};
+
+namespace Item {
 enum Item {
     Passage = 0,
     Rigid = 1,
@@ -33,16 +55,41 @@ enum Item {
     Agent2 = 11,
     Agent3 = 12
 };
-const char* CUI_characters[13] = {" ", "⊠", "⊞", "⊚", "⊗", " ", "E",
-                                  "R", "K", "1", "2", "3", "4"};
-struct Observation {
-    pom::Matrix board, bomb, bomb_strength;
-    pom::Coordinate position;
-    std::vector<short> enemies;
-    short game_type, blast_strength, teammate, step_count;
 };
+
+namespace Actions {
+enum Actions { Stop = 0, Up = 1, Down = 2, Left = 3, Right = 4, Bomb = 5 };
+};
+
+const char* CUI_characters[13] = {" ",          "⊠",         "\033[32m⊞", "\033[31;1m⊚",
+                                  "\033[31m⊗",  " ",         "\033[33mE", "\033[33mR",
+                                  "\033[33mK",  "\033[34m1", "\033[36m2", "\033[34;1m3",
+                                  "\033[36;1m4"};
+
 struct GameMode {
-    bool FFA, Radio, Items;
+    // Bomb-pickup GameMode
+    bool ffa, radio, items, kick;
+    unsigned short init_ammo, blast_strength, bomb_time;
+};
+
+struct Stats {
+    unsigned short step_count, ammo, score, bomb_strength;
+    bool kick;
+};
+
+struct Bomb {
+    pom::Coordinate position;
+    unsigned short strength, time;
+};
+
+struct Observation {
+    pom::Matrix<unsigned short> board;
+    std::vector<pom::Bomb> bomb_vec;
+    pom::Coordinate position;
+    std::vector<unsigned short> enemies;
+    pom::GameMode game_type;
+    unsigned short teammate;
+    pom::Stats stats;
 };
 }  // namespace pom
 

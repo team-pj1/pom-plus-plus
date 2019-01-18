@@ -7,28 +7,11 @@
 #include <vector>
 #include "consts.hpp"
 
-namespace pom {  // USE THIS ONE <<<
+namespace pom {
 class board {
    private:
-    void lay_item(unsigned short item, unsigned short num, bool mirror) {
-        while (num > 0) {
-            unsigned int x = (rand() % (this->size));
-            unsigned int y = (rand() % (this->size));
-            if (legal_position(item, x, y)) {
-                this->state[x][y] = item;
-                --num;
-                if (mirror && legal_position(item, y, x)) {
-                    this->state[y][x] = item;
-                    if (num == 0)
-                        break;
-                    else
-                        --num;
-                }
-            }
-        }
-    }
-    bool legal_position(unsigned short item, unsigned int x, unsigned int y) {
-        if (this->state[x][y] != pom::Item::Passage) {
+    bool legal_position(unsigned short item, unsigned short x, unsigned short y) {
+        if (this->state[{x,y}] != pom::Item::Passage) {
             return false;
         } else {
             if (item == pom::Item::Rigid || item == pom::Item::Wood) {
@@ -44,9 +27,6 @@ class board {
     }
 
     void make(unsigned int num_rigid, unsigned int num_wood) {
-        for (int i = 0; i != size; ++i) {
-            state.push_back(std::vector<short>(size, pom::Item::Passage));
-        };
         if (num_wood) {
             lay_item(pom::Item::Wood, num_wood, true);
         }
@@ -56,16 +36,37 @@ class board {
     }
 
    public:
-    unsigned int size, seed;
-    pom::Matrix state;
-    board(const unsigned int size, const unsigned int seed = time(0)) {
+    unsigned short size;
+    unsigned int seed;
+    pom::Matrix<unsigned short> state;
+    board(const unsigned short size, const unsigned int seed = time(0)) {
         assert(size >= 5);
         this->size = size;
-        srand(seed);  // We set it to 5 in the main file. To keep test consistent.
-        std::cout << (int)(size * size) / 5 << "/" << size * size << std::endl;
+        this->state = pom::Matrix<unsigned short>(size);
+        srand(seed);
         make((int)(this->size * this->size) / 5, (int)(this->size * this->size) / 5);
     }
-    void reset() {
+    void lay_item(unsigned short item, unsigned short num, bool mirror) {
+        while (num > 0) {
+            unsigned short x = (rand() % (this->size));
+            unsigned short y = (rand() % (this->size));
+            if (legal_position(item, x, y)) {
+                this->state[{x,y}] = item;
+                --num;
+                if (mirror && legal_position(item, y, x)) {
+                    this->state[{y,x}] = item;
+                    if (num == 0)
+                        break;
+                    else
+                        --num;
+                }
+            }
+        }
+    }
+    void reset(unsigned int seed) {
+        this->seed = seed;
+        srand(seed);
+        this->state.clear();
         make((int)(this->size * this->size) / 5, (int)(this->size * this->size) / 5);
     }
 };
