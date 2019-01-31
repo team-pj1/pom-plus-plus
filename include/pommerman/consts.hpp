@@ -1,6 +1,22 @@
 #pragma once
+#include <random>
+#include <vector>
 
 namespace pom {
+class Random {
+   private:
+    std::mt19937 generator;
+
+   public:
+    unsigned int seed;
+    Random(unsigned int seed) {
+        this->seed = seed;
+        generator.seed(seed);
+    }
+    unsigned int random(unsigned int max) {
+        return std::uniform_int_distribution<unsigned int>{0, max}(generator);
+    }
+};
 class Coordinate {
    public:
     short x, y;
@@ -37,8 +53,9 @@ class Matrix {
         this->state = new T[size * size]();
     }
     void clear() {
-        delete[] state;
-        state = new T[this->size * this->size]();
+        for (unsigned short i = 0; i != this->size * this->size; ++i) {
+            this->state[i] = 0;
+        }
     }
     T& operator[](pom::Coordinate c) { return this->state[c.x + (c.y * this->size)]; }
 };
@@ -77,13 +94,14 @@ const pom::Coordinate direction_offset[4] = {
     pom::Coordinate(-1, 0)};
 
 struct GameMode {
-    // Bomb-pickup GameMode
     bool ffa, radio, items, kick;
-    unsigned short init_ammo, blast_strength, bomb_explode_time, bomb_time;
+    unsigned short init_ammo, blast_strength, bomb_explode_time, bomb_tick_time,
+        max_concurrent_items;
 };
 
 struct Stats {
-    unsigned short step_count, ammo, score, bomb_strength;
+    unsigned short step_count, ammo, bomb_strength;
+    short score;
     bool kick;
 };
 
@@ -102,7 +120,9 @@ struct Observation {
     unsigned short teammate;
     pom::Stats stats;
 };
-}  // namespace pom
 
-// Not at all necessary but you might want to stick to their naming conventions:
-// https://github.com/MultiAgentLearning/playground/blob/master/pommerman/constants.py
+struct Result {
+    bool done;
+    std::vector<short> score;
+};
+}  // namespace pom

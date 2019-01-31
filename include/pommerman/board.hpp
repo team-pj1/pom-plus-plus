@@ -1,17 +1,15 @@
 #pragma once
 #include <assert.h>
-#include <chrono>
 #include <ctime>
-#include <iostream>
-#include <tuple>
-#include <vector>
 #include "consts.hpp"
 
 namespace pom {
 class board {
    private:
+    pom::Random* randgen;
+
     bool legal_position(unsigned short item, unsigned short x, unsigned short y) {
-        if (this->state[{x,y}] != pom::Item::Passage) {
+        if (this->state[{x, y}] != pom::Item::Passage) {
             return false;
         } else {
             if (item == pom::Item::Rigid || item == pom::Item::Wood) {
@@ -43,18 +41,18 @@ class board {
         assert(size >= 5);
         this->size = size;
         this->state = pom::Matrix<unsigned short>(size);
-        srand(seed);
+        this->randgen = &pom::Random(seed);
         make((int)(this->size * this->size) / 5, (int)(this->size * this->size) / 5);
     }
     void lay_item(unsigned short item, unsigned short num, bool mirror) {
         while (num > 0) {
-            unsigned short x = (rand() % (this->size));
-            unsigned short y = (rand() % (this->size));
+            unsigned short x = (this->randgen->random(this->size));
+            unsigned short y = (this->randgen->random(this->size));
             if (legal_position(item, x, y)) {
-                this->state[{x,y}] = item;
+                this->state[{x, y}] = item;
                 --num;
                 if (mirror && legal_position(item, y, x)) {
-                    this->state[{y,x}] = item;
+                    this->state[{y, x}] = item;
                     if (num == 0)
                         break;
                     else
@@ -63,9 +61,8 @@ class board {
             }
         }
     }
-    void reset(unsigned int seed) {
-        this->seed = seed;
-        srand(seed);
+    void reset(unsigned int seed = time(0)) {
+        this->randgen = &pom::Random(seed);
         this->state.clear();
         make((int)(this->size * this->size) / 5, (int)(this->size * this->size) / 5);
     }
