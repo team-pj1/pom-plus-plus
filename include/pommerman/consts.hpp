@@ -13,9 +13,7 @@ class Random {
         this->seed = seed;
         generator.seed(seed);
     }
-    unsigned int random(unsigned int max) {
-        return std::uniform_int_distribution<unsigned int>{0, max}(generator);
-    }
+    unsigned int random(unsigned int max) { return generator() % (max + 1); }
 };
 class Coordinate {
    public:
@@ -32,9 +30,21 @@ class Coordinate {
         if (!i) return x;
         return y;
     }
+    void operator=(pom::Coordinate c) {
+        this->x = c.x;
+        this->y = c.y;
+    }
     void operator+=(pom::Coordinate c) {
         this->x += c.x;
         this->y += c.y;
+    }
+    void operator-=(pom::Coordinate c) {
+        this->x -= c.x;
+        this->y -= c.y;
+    }
+    void operator/=(pom::Coordinate c) {
+        this->x /= c.x;
+        this->y /= c.y;
     }
     bool operator==(pom::Coordinate c) { return (c.x == this->x && c.y == this->y); }
     bool operator!=(pom::Coordinate c) { return !(c.x == this->x && c.y == this->y); }
@@ -52,11 +62,12 @@ class Matrix {
         this->size = size;
         this->state = new T[size * size]();
     }
-    void clear() {
+    void fill(T fill) {
         for (unsigned short i = 0; i != this->size * this->size; ++i) {
-            this->state[i] = 0;
+            this->state[i] = fill;
         }
     }
+    void clear() { fill(0); }
     T& operator[](pom::Coordinate c) { return this->state[c.x + (c.y * this->size)]; }
 };
 
@@ -85,18 +96,18 @@ enum Actions { Stop = 0, Up = 1, Down = 2, Left = 3, Right = 4, Bomb = 5 };
 const unsigned short teams[2][2] = {{0, 2}, {1, 3}};
 
 const char* CUI_characters[13] = {" ",          "⊠",         "\033[32m⊞", "\033[31;1m⊚",
-                                  "\033[31m⊗",  " ",         "\033[33mE", "\033[33mR",
+                                  "\033[31m⊗",  "F",         "\033[33mE", "\033[33mR",
                                   "\033[33mK",  "\033[34m1", "\033[36m2", "\033[34;1m3",
                                   "\033[36;1m4"};
 
-const pom::Coordinate direction_offset[4] = {
-    pom::Coordinate(0, 1), pom::Coordinate(0, -1), pom::Coordinate(1, 0),
-    pom::Coordinate(-1, 0)};
+const pom::Coordinate direction_offset[5] = {
+    pom::Coordinate(0, 0), pom::Coordinate(0, -1), pom::Coordinate(0, 1),
+    pom::Coordinate(-1, 0), pom::Coordinate(1, 0)};
 
 struct GameMode {
-    bool ffa, radio, items, kick;
+    bool ffa, partial_observation, items, kick;
     unsigned short init_ammo, blast_strength, bomb_explode_time, bomb_tick_time,
-        max_concurrent_items;
+        max_concurrent_items, partial_observation_size;
 };
 
 struct Stats {
@@ -108,7 +119,7 @@ struct Stats {
 struct Bomb {
     bool exploded;
     pom::Coordinate position;
-    unsigned short agent_id, strength, time;
+    unsigned short agent_id, strength, time, velocity_dir;
 };
 
 struct Observation {

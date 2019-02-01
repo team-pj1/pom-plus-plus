@@ -25,13 +25,13 @@ struct Agent {
 class forward_model {
    private:
     pom::Random* randgen;
-    unsigned short present_powerups = 0;
+    unsigned short concurrent_items;
     /* Initialize the Forward Model */
     void init(std::vector<pom::agent::base_agent*> agent_vector) {
         std::vector<short> score(agent_vector.size(), 0);
         this->result = pom::Result{false, score};
         this->randgen = &pom::Random(this->board->seed);
-
+        this->concurrent_items = 0;
         pom::Coordinate init_pos[4] = {
             pom::Coordinate(1, 1), pom::Coordinate(this->board->size - 2, 1),
             pom::Coordinate(this->board->size - 2, this->board->size - 2),
@@ -52,10 +52,41 @@ class forward_model {
             this->board->state[this->agents[i].position] = i + pom::Item::Agent0;
         }
     }
+    /* Returns Matrix of board filled partially with fog */
+    pom::Matrix<unsigned short> partial_observation(pom::Coordinate position,
+                                                    unsigned short side,
+                                                    pom::Matrix<unsigned short> board) {
+        pom::Matrix<unsigned short> partial_board(this->board->size);
+        partial_board.fill(pom::Item::Fog);
+
+        pom::Coordinate init_pos;
+        unsigned short half_side = side / 2;
+        init_pos.x = position.x - half_side;
+        init_pos.y = position.y - half_side;
+
+        for (unsigned short y = 0; y < side; ++y) {
+            for (unsigned short x = 0; x < side; ++x) {
+                if (init_pos.x >= 0 && init_pos.y >= 0 &&
+                    init_pos.x <= this->board->size && init_pos.y <= this->board->size) {
+                    partial_board[init_pos] = this->board->state[init_pos];
+                }
+                init_pos += pom::direction_offset[pom::Actions::Right];
+            }
+            init_pos.x = position.x - half_side;
+            init_pos += pom::direction_offset[pom::Actions::Down];
+        }
+
+        return partial_board;
+    }
     /* Returns a filled Observation on the basis of the board */
     pom::Observation obs_fill(pom::Agent agent) {
-        return pom::Observation{this->board->state, this->bombs,     agent.position,
-                                agent.enemies,      agent.game_type, agent.teammate,
+        pom::Matrix<unsigned short> board_obs = this->board->state;
+        if (this->mode.partial_observation) {
+            board_obs = this->partial_observation(
+                agent.position, this->mode.partial_observation_size, board_obs);
+        }
+        return pom::Observation{board_obs,     this->bombs,     agent.position,
+                                agent.enemies, agent.game_type, agent.teammate,
                                 agent.stats};
     }
     /* Calculate the coordinates of the agent after move */
@@ -105,6 +136,25 @@ class forward_model {
                 return true;
         }
     }
+    /* Check if a coordinate is legal for a bomb to move on */
+    bool bomb_coord_legal(pom::Coordinate coord) {
+        if (!coord_legal(coord) || coord.x < 0 || coord.y < 0 ||
+            coord.x >= this->board->size || coord.y >= this->board->size)
+            return false;
+        switch (this->board->state[coord]) {
+            case pom::Item::ExtraBomb:
+                return false;
+                break;
+            case pom::Item::IncrRange:
+                return false;
+                break;
+            case pom::Item::Kick:
+                return false;
+                break;
+            default:
+                return true;
+        }
+    }
     /* Change attributes of the agent on the basis of it's position */
     void agent_effectors(pom::Agent* agent, pom::Coordinate position) {
         switch (this->board->state[position]) {
@@ -126,15 +176,11 @@ class forward_model {
     /* Place item in bomb's explosion range */
     void bomb_place(pom::Bomb bomb, unsigned short item) {
         this->board->state[bomb.position] = item;
-        for (short k = 0; k != 4; ++k) {
+        for (short k = 1; k != 5; ++k) {
             pom::Coordinate position(bomb.position.x, bomb.position.y);
             for (short i = 0; i != bomb.strength; ++i) {
                 position += pom::direction_offset[k];
-                /*
-                if (position.x < 0 || position.y < 0 || position.x < this->board->size ||
-                    position.y > this->board->size)
-                    break;
-                */
+                if (position.x < 0 || position.x >= this->board->size) break;
                 if (this->board->state[position] != pom::Item::Rigid)
                     this->board->state[position] = item;
                 else
@@ -142,6 +188,7 @@ class forward_model {
             }
         }
     }
+    /* Update the  */
     void result_update(bool done) {
         for (unsigned short i = 0; i != this->agents.size(); ++i) {
             this->result.score[i] = this->agents[i].stats.score;
@@ -162,7 +209,7 @@ class forward_model {
         if (agent_vector.size() == 2 && !mode.ffa) {
             throw std::logic_error("Only FFA supports 2 agents");
         }
-
+        assert(!mode.partial_observation || mode.partial_observation_size % 2 == 0);
         this->mode = mode;
         this->board = board;
         init(agent_vector);
@@ -209,22 +256,7 @@ class forward_model {
                                    this->agents[i].position != new_pos) {
                             for (unsigned short k = 0; k != this->bombs.size(); ++k) {
                                 if (this->bombs[k].position == new_pos) {
-                                    pom::Coordinate init_pos(this->bombs[k].position.x,
-                                                             this->bombs[k].position.y);
-                                    this->board->state[init_pos] = pom::Item::Passage;
-                                    while (true) {
-                                        init_pos += pom::direction_offset[act - 1];
-                                        if (!coord_legal(init_pos)) {
-                                            init_pos.x = init_pos.x -
-                                                         pom::direction_offset[act - 1].x;
-                                            init_pos.y = init_pos.y -
-                                                         pom::direction_offset[act - 1].y;
-                                            this->board->state[init_pos] =
-                                                pom::Item::Bomb;
-                                            this->bombs[k].position = init_pos;
-                                            break;
-                                        }
-                                    }
+                                    this->bombs[k].velocity_dir = act;
                                     break;
                                 }
                             }
@@ -244,19 +276,34 @@ class forward_model {
         }
         // Item placement
         if (this->mode.items) {
-            if (present_powerups <= mode.max_concurrent_items) {
+            if (concurrent_items <= mode.max_concurrent_items) {
                 if (this->randgen->random(100) < 10) {
                     unsigned short item =
                         (this->randgen->random(3)) + pom::Item::ExtraBomb;
                     this->board->lay_item(item, 1, false);
-                    present_powerups++;
+                    concurrent_items++;
                 }
             }
         }
-        // Bomb Tick
+        // Bomb Tick/Movement
         for (unsigned short i = 0; i != this->bombs.size(); ++i) {
+            // Bomb Movement
+            if (this->bombs[i].velocity_dir) {
+                pom::Coordinate init_pos = this->bombs[i].position;
+                this->bombs[i].position +=
+                    pom::direction_offset[this->bombs[i].velocity_dir];
+                if (bomb_coord_legal(this->bombs[i].position)) {
+                    this->board->state[init_pos] = pom::Item::Passage;
+                    this->board->state[this->bombs[i].position] = pom::Item::Bomb;
+                } else {
+                    this->bombs[i].position = init_pos;
+                    this->bombs[i].velocity_dir = pom::Actions::Stop;
+                }
+            }
+            // Bomb Tick
             this->bombs[i].time--;
             if (this->bombs[i].time == 0 && !this->bombs[i].exploded) {
+                this->bombs[i].velocity_dir = pom::Actions::Stop;
                 this->agents[this->bombs[i].agent_id].stats.ammo++;
                 this->agents[this->bombs[i].agent_id].bomb_placed = false;
                 this->bombs[i].time = this->mode.bomb_tick_time;
@@ -277,6 +324,10 @@ class forward_model {
                     break;
                 } else if (this->agents[i].alive) {
                     alive_i = i;
+                } else if (!this->agents[i].alive && alive_i == -1 &&
+                           i == this->agents.size() - 1) {
+                    this->result_update(true);
+                    return;
                 }
             }
             if (alive_i != -1) {
@@ -286,6 +337,7 @@ class forward_model {
                 return;
             }
         } else {
+            bool draw = true;
             for (unsigned short i = 0; i != 2; ++i) {
                 if (!this->agents[i].alive &&
                     !this->agents[this->agents[i].teammate].alive) {
@@ -293,6 +345,7 @@ class forward_model {
                     for (short j = 0; j != 2; j++) {
                         short agent_id = pom::teams[i][j];
                         if (this->agents[agent_id].alive) {
+                            draw = false;
                             this->agents[agent_id].agent_class->episode_end(
                                 this->agents[agent_id].stats.score);
                         }
@@ -300,6 +353,9 @@ class forward_model {
                     this->result_update(true);
                     return;
                 }
+            }
+            if (draw) {
+                this->result_update(true);
             }
         }
         this->result_update(false);

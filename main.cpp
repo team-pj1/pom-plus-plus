@@ -19,7 +19,7 @@ int main() {
     // Create Board
     pom::board board(11);
     // Create Agents
-    pom::agent::lazy_agent a;
+    pom::agent::rand_agent a;
     pom::agent::rand_agent b;
 #if BENCHMARK
     pom::agent::suicide_agent c;
@@ -28,7 +28,7 @@ int main() {
 #endif
     pom::agent::rand_agent d;
     // Initialize Forward Model
-    pom::forward_model fm(pom::GameMode({1, 0, 1, 1, 1, 2, 5, 5, 3}), &board,
+    pom::forward_model fm(pom::GameMode({1, 0, 1, 1, 1, 2, 5, 5, 3, 24}), &board,
                           std::vector<pom::agent::base_agent*>{&a, &b, &c, &d});
 // Benchmark
 #if BENCHMARK

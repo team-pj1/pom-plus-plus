@@ -15,7 +15,7 @@ class cui {
         for (unsigned short y = 0; y < b->size; ++y) {
             std::cout << " ";
             for (unsigned short x = 0; x < b->size; ++x) {
-                std::cout << CUI_characters[b->state[{x, y}]] << "  "
+                std::cout << pom::CUI_characters[b->state[{x, y}]] << "  "
                           << "\033[0m";
             }
             std::cout << "\n";

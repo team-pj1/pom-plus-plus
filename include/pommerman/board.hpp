@@ -66,5 +66,6 @@ class board {
         this->state.clear();
         make((int)(this->size * this->size) / 5, (int)(this->size * this->size) / 5);
     }
+    unsigned short operator[](pom::Coordinate c) { return this->state[c]; }
 };
 }  // namespace pom

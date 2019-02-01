@@ -2,6 +2,11 @@
 #include <exception>
 #include <iostream>
 #include "consts.hpp"
+#ifdef _WIN32
+#include <conio.h>
+#elif unix
+#include <ncurses.h>
+#endif
 
 namespace pom {
 namespace agent {
@@ -25,30 +30,44 @@ class rand_agent : public pom::agent::base_agent {
     void init(short id, pom::GameMode mode) override {
         this->id = id;
         srand((unsigned int)(time(0) + id));
-        // std::cout << "Random #" << id << std::endl;
     }
-    unsigned short act(pom::Observation obs) override { return rand() % 6; }
+    unsigned short act(pom::Observation obs) override { return rand() % 5; }
 };
 class lazy_agent : public pom::agent::base_agent {
    public:
-    void init(short id, pom::GameMode mode) override {
-        this->id = id;
-        // std::cout << "Lazy #" << id << std::endl;
-    }
     unsigned short act(pom::Observation obs) override { return 0; }
 };
 class suicide_agent : public pom::agent::base_agent {
    public:
-    void init(short id, pom::GameMode mode) override {
-        this->id = id;
-        // std::cout << "Suicide #" << id << std::endl;
-    }
     unsigned short act(pom::Observation obs) override { return 5; }
+};
+
+class print_agent : public pom::agent::base_agent {
+   public:
+    unsigned short act(pom::Observation obs) override {
+        std::cout << "\033[" << obs.board.size << "A"
+                  << "\033[0D";
+        for (unsigned short y = 0; y < obs.board.size; ++y) {
+            std::cout << " ";
+            for (unsigned short x = 0; x < obs.board.size; ++x) {
+                std::cout << CUI_characters[obs.board[{x, y}]] << "  "
+                          << "\033[0m";
+            }
+            std::cout << "\n";
+        }
+        return 0;
+    }
 };
 class keyboard_agent : public pom::agent::base_agent {
    public:
     unsigned short act(pom::Observation obs) override {
+#ifdef _WIN32
+        char input = _getch();
+#elif unix
+        char input = getch();
+#else
         char input = std::cin.get();
+#endif
         switch (input) {
             case 'W':
             case 'w':
