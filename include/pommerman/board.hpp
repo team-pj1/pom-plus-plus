@@ -6,7 +6,7 @@
 namespace pom {
 class board {
    private:
-    pom::Random* randgen;
+    pom::Random randgen();
 
     bool legal_position(unsigned short item, unsigned short x, unsigned short y) {
         if (this->state[{x, y}] != pom::Item::Passage) {
@@ -41,14 +41,14 @@ class board {
         assert(size >= 5);
         this->size = size;
         this->state = pom::Matrix<unsigned short>(size);
-        this->randgen = &pom::Random(seed);
+        this->randgen = pom::Random(seed);
         this->seed = seed;
         make((int)(this->size * this->size) / 5, (int)(this->size * this->size) / 5);
     }
     void lay_item(unsigned short item, unsigned short num, bool mirror) {
         while (num > 0) {
-            unsigned short x = (this->randgen->random(this->size));
-            unsigned short y = (this->randgen->random(this->size));
+            unsigned short x = (this->randgen.random(this->size));
+            unsigned short y = (this->randgen.random(this->size));
             if (legal_position(item, x, y)) {
                 this->state[{x, y}] = item;
                 --num;
@@ -63,7 +63,7 @@ class board {
         }
     }
     void reset(unsigned int seed = time(0)) {
-        this->randgen = &pom::Random(seed);
+        this->randgen = pom::Random(seed);
         this->state.clear();
         make((int)(this->size * this->size) / 5, (int)(this->size * this->size) / 5);
     }

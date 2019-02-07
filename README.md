@@ -18,6 +18,7 @@ It is a header-only library, and written with C++11 in mind however may work wit
 
 ## Known Bugs
 
+- `Agent 1` duplicates itself across the board
 - On some systems, the program only works when build for `x64`. If built for `Win32` it has problems with `<random.h>`'s methods or fails to obtain input using `__getch()`.
 - If partial observation are used then it crashes on agent movement
 
@@ -32,6 +33,10 @@ It is a header-only library, and written with C++11 in mind however may work wit
 |    Game Mode     | Parameterized  |   Preset    |
 
 ## Changelog
+
+### v1.2.1.1
+
+- Fix `pom::Random` pointers
 
 ### v1.2.1
 
