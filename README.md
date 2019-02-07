@@ -33,6 +33,13 @@ It is a header-only library, and written with C++11 in mind however may work wit
 
 ## Changelog
 
+### v1.2.1
+
+- Change `pom::Random` from pointer to object in `pom::forward_model`
+- Remove `step_count` from `pom::Stats`
+- Fix Agent Effector Bug
+- Improve Benchmark to be more accurate
+
 ### v1.2
 
 - RNG changed from `std::uniform_int_distribution` to modular

@@ -10,6 +10,7 @@
 #define sleep(x) usleep((x)*1000)
 #endif
 #define BENCHMARK 0
+#define BENCHMARK_STEPS 10000
 #if BENCHMARK
 #include <chrono>
 #include <iostream>
@@ -22,25 +23,26 @@ int main() {
     pom::agent::rand_agent a;
     pom::agent::rand_agent b;
 #if BENCHMARK
-    pom::agent::suicide_agent c;
+    pom::agent::rand_agent c;
 #else
     pom::agent::keyboard_agent c;
 #endif
     pom::agent::rand_agent d;
     // Initialize Forward Model
-    pom::forward_model fm(pom::GameMode({1, 0, 1, 1, 1, 2, 5, 5, 3, 24}), &board,
+    pom::forward_model fm(pom::GameMode({1, 0, 1, 0, 1, 2, 5, 5, 3, 12}), &board,
                           std::vector<pom::agent::base_agent*>{&a, &b, &c, &d});
 // Benchmark
 #if BENCHMARK
-    auto start = std::chrono::steady_clock::now();
-    for (int i = 0; i != 100 * 100; ++i) {
-        while (!fm.result.done) {
-            fm.step();
-        }
-        fm.reset();
+    auto start = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i != BENCHMARK_STEPS; ++i) {
+        fm.step();
+        if (fm.result.done) fm.reset();
     }
-    auto end = std::chrono::steady_clock::now();
-    std::cout << std::chrono::duration<double, std::milli>(end - start).count() << " ms";
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration<double, std::milli>(end - start).count();
+    std::cout << duration << " ms/" << BENCHMARK_STEPS << " steps, "
+              << duration / BENCHMARK_STEPS << " ms/step"
+              << "\nPress any key to exit";
     std::cin.get();
 #else
     // Initialize Command-Line UI
@@ -50,7 +52,7 @@ int main() {
         while (!fm.result.done) {
             fm.step();
             cui.update();
-            sleep(150);
+            sleep(25);
         }
         fm.reset();
     }

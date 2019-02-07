@@ -42,6 +42,7 @@ class board {
         this->size = size;
         this->state = pom::Matrix<unsigned short>(size);
         this->randgen = &pom::Random(seed);
+        this->seed = seed;
         make((int)(this->size * this->size) / 5, (int)(this->size * this->size) / 5);
     }
     void lay_item(unsigned short item, unsigned short num, bool mirror) {

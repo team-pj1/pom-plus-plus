@@ -24,13 +24,13 @@ struct Agent {
 };
 class forward_model {
    private:
-    pom::Random* randgen;
+    pom::Random randgen;
     unsigned short concurrent_items;
     /* Initialize the Forward Model */
     void init(std::vector<pom::agent::base_agent*> agent_vector) {
         std::vector<short> score(agent_vector.size(), 0);
         this->result = pom::Result{false, score};
-        this->randgen = &pom::Random(this->board->seed);
+        this->randgen = pom::Random(this->board->seed);
         this->concurrent_items = 0;
         pom::Coordinate init_pos[4] = {
             pom::Coordinate(1, 1), pom::Coordinate(this->board->size - 2, 1),
@@ -38,7 +38,7 @@ class forward_model {
             pom::Coordinate(1, this->board->size - 2)};
 
         for (short i = 0; i != agent_vector.size(); ++i) {
-            pom::Stats stats{0, mode.init_ammo, mode.blast_strength, 0, mode.kick};
+            pom::Stats stats{mode.init_ammo, mode.blast_strength, 0, mode.kick};
             unsigned short teammate = (i > 2 ? i - 2 : i + 2);
             std::vector<unsigned short> enemy_vec;
             enemy_vec.reserve(2);
@@ -156,20 +156,21 @@ class forward_model {
         }
     }
     /* Change attributes of the agent on the basis of it's position */
-    void agent_effectors(pom::Agent* agent, pom::Coordinate position) {
-        switch (this->board->state[position]) {
+    void agent_effectors(unsigned short agent_id) {
+        switch (this->board->state[this->agents[agent_id].position]) {
             case pom::Item::Flames:
-                agent->agent_class->episode_end(agent->stats.score);
-                agent->alive = false;
+                this->agents[agent_id].agent_class->episode_end(
+                    this->agents[agent_id].stats.score);
+                this->agents[agent_id].alive = false;
                 break;
             case pom::Item::ExtraBomb:
-                agent->stats.ammo += 1;
+                this->agents[agent_id].stats.ammo += 1;
                 break;
             case pom::Item::IncrRange:
-                agent->stats.bomb_strength += 1;
+                this->agents[agent_id].stats.bomb_strength += 1;
                 break;
             case pom::Item::Kick:
-                agent->stats.kick = true;
+                this->agents[agent_id].stats.kick = true;
                 break;
         };
     }
@@ -188,7 +189,7 @@ class forward_model {
             }
         }
     }
-    /* Update the  */
+    /* Update the Result object */
     void result_update(bool done) {
         for (unsigned short i = 0; i != this->agents.size(); ++i) {
             this->result.score[i] = this->agents[i].stats.score;
@@ -229,7 +230,6 @@ class forward_model {
         // Agent Logic
         for (unsigned short i = 0; i != this->agents.size(); ++i) {
             if (this->agents[i].alive) {
-                agent_effectors(&this->agents[i], this->agents[i].position);
                 if (this->agents[i].alive) {
                     unsigned short act =
                         this->agents[i].agent_class->act(this->obs_fill(this->agents[i]));
@@ -246,10 +246,6 @@ class forward_model {
                                 }
                                 this->agents[i].bomb_placed = false;
                                 this->agents[i].position = new_pos;
-                                if (this->board->state[this->agents[i].position] !=
-                                    pom::Item::Flames)
-                                    this->board->state[this->agents[i].position] =
-                                        i + pom::Item::Agent0;
                             }
                         } else if (this->board->state[new_pos] == pom::Item::Bomb &&
                                    this->agents[i].stats.kick &&
@@ -271,15 +267,19 @@ class forward_model {
                             this->agents[i].bomb_placed = true;
                         }
                     }
+                    agent_effectors(i);
+                    if (this->board->state[this->agents[i].position] != pom::Item::Flames)
+                        this->board->state[this->agents[i].position] =
+                            i + pom::Item::Agent0;
                 }
             }
         }
         // Item placement
         if (this->mode.items) {
             if (concurrent_items <= mode.max_concurrent_items) {
-                if (this->randgen->random(100) < 10) {
+                if (this->randgen.random(10) < 2) {
                     unsigned short item =
-                        (this->randgen->random(3)) + pom::Item::ExtraBomb;
+                        (this->randgen.random(3)) + pom::Item::ExtraBomb;
                     this->board->lay_item(item, 1, false);
                     concurrent_items++;
                 }

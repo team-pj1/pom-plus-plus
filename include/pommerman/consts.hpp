@@ -9,6 +9,7 @@ class Random {
 
    public:
     unsigned int seed;
+    Random() {}
     Random(unsigned int seed) {
         this->seed = seed;
         generator.seed(seed);
@@ -111,7 +112,7 @@ struct GameMode {
 };
 
 struct Stats {
-    unsigned short step_count, ammo, bomb_strength;
+    unsigned short ammo, bomb_strength;
     short score;
     bool kick;
 };
