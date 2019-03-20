@@ -15,6 +15,8 @@ It is a header-only library, and written with C++11 in mind however may work wit
 - Python Bindings
 - Radio (Optional)
 - Match Recording
+- GUI
+- Bomb Chaining
 
 ## Known Bugs
 

@@ -136,6 +136,30 @@ class forward_model {
                 return true;
         }
     }
+    /* Place item in bomb's explosion range */
+    void bomb_place(pom::Bomb bomb, unsigned short item) {
+        this->board->state[bomb.position] = item;
+        for (short k = 1; k != 5; ++k) {
+            pom::Coordinate position(bomb.position.x, bomb.position.y);
+            for (short i = 0; i != bomb.strength; ++i) {
+                position += pom::direction_offset[k];
+                if (position.x < 0 || position.x >= this->board->size) break;
+                if (this->board->state[position] != pom::Item::Rigid)
+                    this->board->state[position] = item;
+                else
+                    break;
+            }
+        }
+    }
+    /* Cause the bomb with the specified index to explode */
+    void bomb_explode(short index) {
+        this->bombs[index].velocity_dir = pom::Actions::Stop;
+        this->agents[this->bombs[index].agent_id].stats.ammo++;
+        this->agents[this->bombs[index].agent_id].bomb_placed = false;
+        this->bombs[index].time = this->mode.bomb_tick_time;
+        this->bombs[index].exploded = true;
+        this->bomb_place(this->bombs[index], pom::Item::Flames);
+    }
     /* Check if a coordinate is legal for a bomb to move on */
     bool bomb_coord_legal(pom::Coordinate coord) {
         if (!coord_legal(coord) || coord.x < 0 || coord.y < 0 ||
@@ -151,17 +175,27 @@ class forward_model {
             case pom::Item::Kick:
                 return false;
                 break;
+            case pom::Item::Bomb:
+                for (unsigned short i = 0; i != this->bombs.size(); ++i) {
+                    if (this->bombs[i].position == coord) {
+                        bomb_explode(i);
+                    }
+                };
+                return false;
+                break;
             default:
                 return true;
         }
     }
-    /* Change attributes of the agent on the basis of it's position */
-    void agent_effectors(unsigned short agent_id) {
+    /* Change attributes of the agent on the basis of it's position and return if the
+     * agent is alive or not */
+    bool agent_effectors(unsigned short agent_id) {
         switch (this->board->state[this->agents[agent_id].position]) {
             case pom::Item::Flames:
                 this->agents[agent_id].agent_class->episode_end(
                     this->agents[agent_id].stats.score);
                 this->agents[agent_id].alive = false;
+                return false;
                 break;
             case pom::Item::ExtraBomb:
                 this->agents[agent_id].stats.ammo += 1;
@@ -173,21 +207,7 @@ class forward_model {
                 this->agents[agent_id].stats.kick = true;
                 break;
         };
-    }
-    /* Place item in bomb's explosion range */
-    void bomb_place(pom::Bomb bomb, unsigned short item) {
-        this->board->state[bomb.position] = item;
-        for (short k = 1; k != 5; ++k) {
-            pom::Coordinate position(bomb.position.x, bomb.position.y);
-            for (short i = 0; i != bomb.strength; ++i) {
-                position += pom::direction_offset[k];
-                if (position.x < 0 || position.x >= this->board->size) break;
-                if (this->board->state[position] != pom::Item::Rigid)
-                    this->board->state[position] = item;
-                else
-                    break;
-            }
-        }
+        return true;
     }
     /* Update the Result object */
     void result_update(bool done) {
@@ -230,7 +250,7 @@ class forward_model {
         // Agent Logic
         for (unsigned short i = 0; i != this->agents.size(); ++i) {
             if (this->agents[i].alive) {
-                if (this->agents[i].alive) {
+                if (agent_effectors(i)) {
                     unsigned short act =
                         this->agents[i].agent_class->act(this->obs_fill(this->agents[i]));
                     if (act != pom::Actions::Stop && act != pom::Actions::Bomb) {
@@ -267,10 +287,12 @@ class forward_model {
                             this->agents[i].bomb_placed = true;
                         }
                     }
-                    agent_effectors(i);
-                    if (this->board->state[this->agents[i].position] != pom::Item::Flames)
-                        this->board->state[this->agents[i].position] =
-                            i + pom::Item::Agent0;
+                    if (agent_effectors(i)) {
+                        if (this->board->state[this->agents[i].position] !=
+                            pom::Item::Flames)
+                            this->board->state[this->agents[i].position] =
+                                i + pom::Item::Agent0;
+                    }
                 }
             }
         }
@@ -303,12 +325,7 @@ class forward_model {
             // Bomb Tick
             this->bombs[i].time--;
             if (this->bombs[i].time == 0 && !this->bombs[i].exploded) {
-                this->bombs[i].velocity_dir = pom::Actions::Stop;
-                this->agents[this->bombs[i].agent_id].stats.ammo++;
-                this->agents[this->bombs[i].agent_id].bomb_placed = false;
-                this->bombs[i].time = this->mode.bomb_tick_time;
-                this->bombs[i].exploded = true;
-                this->bomb_place(this->bombs[i], pom::Item::Flames);
+                bomb_explode(i);
             } else if (this->bombs[i].time == 0 && this->bombs[i].exploded) {
                 this->bomb_place(this->bombs[i], pom::Item::Passage);
                 this->bombs.erase(this->bombs.begin() + i);

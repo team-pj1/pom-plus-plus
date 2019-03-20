@@ -6,7 +6,7 @@
 namespace pom {
 class board {
    private:
-    pom::Random randgen();
+    pom::Random randgen;
 
     bool legal_position(unsigned short item, unsigned short x, unsigned short y) {
         if (this->state[{x, y}] != pom::Item::Passage) {

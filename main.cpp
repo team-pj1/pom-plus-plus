@@ -29,7 +29,7 @@ int main() {
 #endif
     pom::agent::rand_agent d;
     // Initialize Forward Model
-    pom::forward_model fm(pom::GameMode({1, 0, 1, 0, 1, 2, 5, 5, 3, 12}), &board,
+    pom::forward_model fm(pom::GameMode({1, 0, 1, 0, 3, 2, 5, 5, 3, 12}), &board,
                           std::vector<pom::agent::base_agent*>{&a, &b, &c, &d});
 // Benchmark
 #if BENCHMARK
